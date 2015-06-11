@@ -201,23 +201,28 @@ KEYWORDS should be nil or a list of keywords."
     ;;         (package--push pkg (package-desc-status pkg) info-list)))))
 
     ;; Print the result.
-    (let ((installed (mapcar (lambda (pkg)
-                               (cdr (assoc 'name (cdr pkg))))
-                             (nix-package-query-installed))))
+    (cl-flet ((attr (field elem) (cdr (assoc field (cadr elem)))))
       (setq tabulated-list-entries
             (mapcar (lambda (pkg)
-                      (push (cons 'status
-                                  (if (find (cdr (assoc 'name (cdr pkg))) installed :test #'equal)
-                                      "installed"
-                                    ;; FIXME: don’t hard-code
-                                    (if (find "x86_64-darwin"
-                                              (cdr (assoc 'platforms (cdr (assoc 'meta (cdr pkg)))))
-                                              :test #'equal)
-                                        "available"
-                                      "disabled")))
-                            (cdr pkg))
-                      (nix-package-menu--print-info pkg))
-                    (nix-package-query-available))))))
+                      (nix-package-menu--print-info
+                       `((id     . ,(attr 'attrPath pkg))
+                         (name   . ,(attr 'name pkg))
+                         (status . ,(concat (cond
+                                             ((equal "1" (attr 'installed pkg))
+                                              "I")
+                                             ((equal "1" (attr 'valid pkg))
+                                              "P")
+                                             ((equal "1" (attr 'substitutable pkg))
+                                              "S")
+                                             ((equal "unknown" (attr 'system pkg))
+                                              "D")
+                                             (t " "))
+                                            (case (attr 'versionDiff pkg)
+                                              ("<" "<")
+                                              (">" ">")
+                                              (otherwise " "))))
+                         (description . ,(attr 'description pkg)))))
+                    (cddr (nix-package-query-available)))))))
 
 (defun nix-package-menu-get-status ()
   (let* ((id (tabulated-list-get-id))
@@ -373,41 +378,37 @@ shown."
   "Return a package entry suitable for `tabulated-list-entries'.
 PKG has the form (PKG-DESC . STATUS).
 Return (PKG-DESC [NAME VERSION STATUS DOC])."
-  (let* ((pkg-desc (car pkg))
-	 (status (cdr (assoc 'status (cdr pkg))))
-	 (face (pcase status
-                 (`"built-in"  'font-lock-builtin-face)
-                 (`"available" 'default)
-                 (`"new"       'bold)
-                 (`"held"      'font-lock-constant-face)
-                 (`"disabled"  'shadow)
-                 (`"installed" 'font-lock-variable-name-face)
-                 (`"unsigned"  'font-lock-warning-face)
-                 (_            'font-lock-warning-face))) ; obsolete.
-         (name-sections (split-string (cdr (assoc 'name (cdr pkg))) "-")))
+  (let* ((pkg-desc (cdr (assoc 'id pkg)))
+	 (status (cdr (assoc 'status pkg)))
+	 (face (pcase (subseq status 0 1)
+                 (`"I" 'font-lock-variable-name-face)
+                 (`"P" 'font-lock-constant-face)
+                 (`"S" 'bold)
+                 (`" " 'default)
+                 (`"D" 'shadow)))
+         (name-sections (split-string (cdr (assoc 'name pkg)) "-")))
     (destructuring-bind (channel . group-sections)
-        (split-string (symbol-name pkg-desc) "\\.")
+        (split-string pkg-desc "\\.")
       (destructuring-bind (name version)
           (if (<= (length name-sections) 1)
               (list (car name-sections) "")
             (list (intercalate (butlast name-sections) "-")
                   (car (last name-sections))))
-        (list (car pkg)
+        (list (intern pkg-desc)
               `[,(list name
                        'face 'link
                        'follow-link t
-                       'package-desc pkg-desc
+                       'package-desc (intern pkg-desc)
                        'action 'nix-package-menu-describe-package)
                 ,(propertize (or (cdr (assoc 'version (cdr (assoc 'meta (cdr pkg)))))
                                  version)
                              'font-lock-face face)
                 ,(propertize channel 'font-lock-face face)
                 ,(propertize (intercalate (butlast group-sections) ".") 'font-lock-face face)
-                ,(propertize (if (equal status "available") "" (subseq status 0 (min (length status) 5))) 'font-lock-face face)
+                ,(propertize status 'font-lock-face face)
                 ,(propertize (replace-regexp-in-string
-                              "\n.*"
-                              ""
-                              (or (cdr (assoc 'description (cdr (assoc 'meta (cdr pkg))))) ""))
+                              "\n" " "
+                              (or (cdr (assoc 'description pkg)) ""))
                              'font-lock-face face)])))))
 
 (provide 'nix-package)
