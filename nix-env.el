@@ -24,18 +24,20 @@
   "Run the uninstall operation from nix-env."
   (apply #'nix-package--nix-env "--uninstall" args))
 
-(defun nix-package-query-available ()
+(defun nix-package-query-available (system-filter)
   "Query the Nix environment."
-  (nix-package--nix-env
-   "--query"
-   "--available"
-   "--status" "--compare-versions" "--system" "--description"))
+  (apply #'nix-package--nix-env
+         "--query"
+         "--available"
+         "--status" "--compare-versions" "--system" "--description"
+         (if system-filter `("--system-filter" ,system-filter))))
 
-(defun nix-package-query-installed ()
+(defun nix-package-query-installed (system-filter)
   "Query the Nix environment."
-  (nix-package--nix-env
-   "--query"
-   "--installed"
-   "--status" "--compare-versions" "--system" "--description"))
+  (apply #'nix-package--nix-env
+         "--query"
+         "--installed"
+         "--status" "--compare-versions" "--system" "--description"
+         (if system-filter `("--system-filter" ,system-filter))))
 
 (provide 'nix-env)

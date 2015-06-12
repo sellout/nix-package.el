@@ -4,6 +4,11 @@
 (require 'nix-env)
 (require 'tabulated-list)
 
+(defcustom nix-package-system "x86_64-darwin" ; TODO: identify automatically
+  "The name of the system to use when filtering packages."
+  :type 'string
+  :group 'nix-package)
+
 ;;;###autoload
 (defun nix-package-describe-package (package)
   "Display the full documentation of PACKAGE (a symbol)."
@@ -35,16 +40,14 @@
 	(describe-package-1 package)))))
 
 ;;;###autoload
-(defun list-nix-packages ()
+(defun list-nix-packages (&optional filter-system-p)
   "Display a list of all known packages, akin to package.el."
-  (interactive)
-  (let (old-archives installed-pkgs)
-    (setq installed-pkgs (nix-package-query-installed))
-    (let ((buf (get-buffer-create "*Nix Packages*")))
-      (with-current-buffer buf
-	(nix-package-menu-mode)
-	(nix-package-menu--generate nil t))
-      (switch-to-buffer buf))))
+  (interactive "P")
+  (let ((buf (get-buffer-create "*Nix Packages*")))
+    (with-current-buffer buf
+      (nix-package-menu-mode)
+      (nix-package-menu--generate nil t (if filter-system-p nix-package-system)))
+    (switch-to-buffer buf)))
 
 (defalias 'nix-package-list-nix-packages 'list-nix-packages)
 
@@ -168,7 +171,7 @@ Letters do not insert themselves; instead, they are commands.
           ((= sA0 ?\ ) t)
           ((= sB0 ?\ ) nil))))
 
-(defun nix-package-menu--refresh (&optional packages keywords)
+(defun nix-package-menu--refresh (&optional packages keywords system-filter)
   "Re-populate the `tabulated-list-entries'.
 PACKAGES should be nil or t, which means to display all known packages.
 KEYWORDS should be nil or a list of keywords."
@@ -185,7 +188,7 @@ KEYWORDS should be nil or a list of keywords."
                                             "P")
                                            ((equal "1" (attr 'substitutable pkg))
                                             "S")
-                                           ((equal "unknown" (attr 'system pkg))
+                                           ((not (equal nix-package-system (attr 'system pkg)))
                                             "D")
                                            (t " "))
                                           (pcase (attr 'versionDiff pkg)
@@ -193,7 +196,7 @@ KEYWORDS should be nil or a list of keywords."
                                             (`">" ">")
                                             (_    " "))))
                        (description . ,(attr 'description pkg)))))
-                  (cddr (nix-package-query-available))))))
+                  (cddr (nix-package-query-available system-filter))))))
 
 (defun nix-package-menu-get-status ()
   (let* ((id (tabulated-list-get-id))
@@ -301,7 +304,7 @@ Optional argument NOQUERY non-nil means do not ask the user to confirm."
     (unless (or delete-list install-list)
       (message "No operations specified."))))
 
-(defun nix-package-menu--generate (remember-pos packages &optional keywords)
+(defun nix-package-menu--generate (remember-pos packages &optional system-filter keywords)
   "Populate the Package Menu.
  If REMEMBER-POS is non-nil, keep point on the same entry.
 PACKAGES should be t, which means to display all known packages,
@@ -309,7 +312,7 @@ or a list of package names (symbols) to display.
 
 With KEYWORDS given, only packages with those keywords are
 shown."
-  (nix-package-menu--refresh packages keywords)
+  (nix-package-menu--refresh packages keywords system-filter)
   (setf (car (aref tabulated-list-format 0))
         (if keywords
             (let ((filters (mapconcat 'identity keywords ",")))
@@ -332,18 +335,6 @@ shown."
 (defface nix-package--package ()
   "The face used for packages that are available on the current platform."
   :group 'nix-package)
-
-;;; FIXME: Statuses should be something like:
-;;; - I, installed
-;;; - P, present (already on system, just link it)
-;;; - S, substitutable (there’s one in the cache?)
-;;; - _, buildable (gonna have to do it yourself)
-;;; - D, disabled (not on the current platform, should be able to filter this)
-;;;
-;;; and we need a column for obsolete (<) / upgrade (>) indicators, and we
-;;; should be able to filter the former
-;;;
-;;; use something like: nix-env -qasc --system --xml --description
 
 (defun nix-package-menu--print-info (pkg)
   "Return a package entry suitable for `tabulated-list-entries'.
