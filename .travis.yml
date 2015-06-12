@@ -16,7 +16,7 @@ install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq $emacs
   - curl https://nixos.org/nix/install | sh
-  - . /home/travis/.nix-profile/etc/profile.d/nix.sh
+  - . $HOME/.nix-profile/etc/profile.d/nix.sh
 script:
   $emacs -Q --batch --eval
     "(progn (add-to-list 'load-path \"./\")
