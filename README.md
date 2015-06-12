@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/sellout/nix-package.el.svg?branch=master)](https://travis-ci.org/sellout/nix-package.el)
+
 **nix-package.el** is for those of us who use [Nix](http://nixos.org/nix/) and enjoy package.el. It provides an Emacs interface to `nix-env`.
 
 # User Guide
