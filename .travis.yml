@@ -3,7 +3,7 @@ sudo: true
 env:
   matrix:
 #    - emacs=emacs22
-#    - emacs=emacs23
+    - emacs=emacs23
 #    - emacs=emacs24
     - emacs=emacs-snapshot
 matrix:
