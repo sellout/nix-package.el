@@ -7,9 +7,13 @@
 
 (defun nix-package--nix-env (&rest args)
   "Run nix-env with the provided ARGS."
-  (let ((ret (apply #'call-process nix-package-inferior-nix-env-program nil t nil args)))
-    (unless (= ret 0)
-      (error "nix failed with error code: %S" ret))))
+  (with-temp-buffer
+    (let ((ret (apply #'call-process
+                      nix-package-inferior-nix-env-program nil t nil
+                      "--show-trace" "--xml" args)))
+      (if (= ret 0)
+          (libxml-parse-xml-region (point-min) (point-max))
+        (error "nix failed with error code: %S\n%s" ret (buffer-string))))))
 
 (defun nix-package-install (finish-func &rest args)
   "Run the install operation from nix-env. This can take forever, so it runs async."
@@ -22,22 +26,16 @@
 
 (defun nix-package-query-available ()
   "Query the Nix environment."
-  (with-temp-buffer
-    (nix-package--nix-env
-     "--query"
-     "--available"
-     "--xml"
-     "--status" "--compare-versions" "--system" "--description")
-    (libxml-parse-xml-region (point-min) (point-max))))
+  (nix-package--nix-env
+   "--query"
+   "--available"
+   "--status" "--compare-versions" "--system" "--description"))
 
 (defun nix-package-query-installed ()
   "Query the Nix environment."
-  (with-temp-buffer
-    (nix-package--nix-env
-     "--query"
-     "--installed"
-     "--xml"
-     "--status" "--compare-versions" "--system" "--description")
-    (libxml-parse-xml-region (point-min) (point-max))))
+  (nix-package--nix-env
+   "--query"
+   "--installed"
+   "--status" "--compare-versions" "--system" "--description"))
 
 (provide 'nix-env)
