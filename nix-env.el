@@ -7,7 +7,9 @@
 
 (defun nix-package--nix-env (&rest args)
   "Run nix-env with the provided ARGS."
-  (apply #'call-process nix-package-inferior-nix-env-program nil t nil args))
+  (let ((ret (apply #'call-process nix-package-inferior-nix-env-program nil t nil args)))
+    (unless (= ret 0)
+      (error "nix failed with error code: %S" ret))))
 
 (defun nix-package-install (finish-func &rest args)
   "Run the install operation from nix-env. This can take forever, so it runs async."

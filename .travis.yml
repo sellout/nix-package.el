@@ -2,15 +2,15 @@ language: emacs-lisp
 sudo: true
 env:
   matrix:
-    - emacs=emacs22
-    - emacs=emacs23
-    - emacs=emacs24
+#    - emacs=emacs22
+#    - emacs=emacs23
+#    - emacs=emacs24
     - emacs=emacs-snapshot
 matrix:
   allow_failures:
     - env: emacs=emacs22
     - env: emacs=emacs23
-    - env: emacs=emacs-snapshot
+#    - env: emacs=emacs-snapshot
 install:
   - sudo add-apt-repository -y ppa:ubuntu-elisp
   - sudo apt-get update -qq
@@ -18,7 +18,7 @@ install:
   - curl https://nixos.org/nix/install | sh
   - . /home/travis/.nix-profile/etc/profile.d/nix.sh
 script:
-  $emacs -Q --batch --eval \
+  $emacs -Q --batch --eval
     "(progn (add-to-list 'load-path \"./\")
             (require 'nix-package)
             (list-nix-packages))"

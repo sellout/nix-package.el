@@ -188,10 +188,10 @@ KEYWORDS should be nil or a list of keywords."
                                            ((equal "unknown" (attr 'system pkg))
                                             "D")
                                            (t " "))
-                                          (case (attr 'versionDiff pkg)
-                                            ("<" "<")
-                                            (">" ">")
-                                            (otherwise " "))))
+                                          (pcase (attr 'versionDiff pkg)
+                                            (`"<" "<")
+                                            (`">" ">")
+                                            (_    " "))))
                        (description . ,(attr 'description pkg)))))
                   (cddr (nix-package-query-available))))))
 
@@ -279,7 +279,7 @@ Optional argument NOQUERY non-nil means do not ask the user to confirm."
                 (format "Install package `%s'? " (car install-list))
               (format "Install these %d packages (%s)? "
                       (length install-list)
-                      (intercalate install-list ", ")))))
+                      (mapconcat #'identity install-list ", ")))))
 	  (apply #'nix-package-install
                  (lambda (x)
                    ,(async-inject-variables "\\`tablulated-list-")
@@ -293,7 +293,7 @@ Optional argument NOQUERY non-nil means do not ask the user to confirm."
                (format "Delete package `%s'? " (car delete-list))
              (format "Delete these %d packages (%s)? "
         	     (length delete-list)
-        	     (intercalate delete-list ", ")))))
+        	     (mapconcat #'identity delete-list ", ")))))
           (progn
             (apply #'nix-package-uninstall "-A" delete-list)
             (nix-package-menu--generate t t))
@@ -351,35 +351,38 @@ PKG has the form (PKG-DESC . STATUS).
 Return (PKG-DESC [NAME VERSION STATUS DOC])."
   (let* ((pkg-desc (cdr (assoc 'id pkg)))
 	 (status (cdr (assoc 'status pkg)))
-	 (face (pcase (subseq status 0 1)
+	 (face (pcase (substring status 0 1)
                  (`"I" 'font-lock-variable-name-face)
                  (`"P" 'font-lock-constant-face)
                  (`"S" 'bold)
                  (`" " 'default)
                  (`"D" 'shadow)))
          (name-sections (split-string (cdr (assoc 'name pkg)) "-")))
-    (destructuring-bind (channel . group-sections)
-        (split-string pkg-desc "\\.")
-      (destructuring-bind (name version)
-          (if (<= (length name-sections) 1)
-              (list (car name-sections) "")
-            (list (intercalate (butlast name-sections) "-")
-                  (car (last name-sections))))
-        (list (intern pkg-desc)
-              `[,(list name
-                       'face 'link
-                       'follow-link t
-                       'package-desc (intern pkg-desc)
-                       'action 'nix-package-menu-describe-package)
-                ,(propertize (or (cdr (assoc 'version (cdr (assoc 'meta (cdr pkg)))))
-                                 version)
-                             'font-lock-face face)
-                ,(propertize channel 'font-lock-face face)
-                ,(propertize (intercalate (butlast group-sections) ".") 'font-lock-face face)
-                ,(propertize status 'font-lock-face face)
-                ,(propertize (replace-regexp-in-string
-                              "\n" " "
-                              (or (cdr (assoc 'description pkg)) ""))
-                             'font-lock-face face)])))))
+    (let* ((attr-sections (split-string pkg-desc "\\."))
+           (channel        (car attr-sections))
+           (group-sections (cdr attr-sections))
+           (name (if (<= (length name-sections) 1)
+                     (car name-sections)
+                   (mapconcat #'identity (butlast name-sections) "-")))
+           (version (if (<= (length name-sections) 1)
+                        ""
+                      (car (last name-sections)))))
+      (list (intern pkg-desc)
+            `[,(list name
+                     'face 'link
+                     'follow-link t
+                     'package-desc (intern pkg-desc)
+                     'action 'nix-package-menu-describe-package)
+              ,(propertize (or (cdr (assoc 'version (cdr (assoc 'meta (cdr pkg)))))
+                               version)
+                           'font-lock-face face)
+              ,(propertize channel 'font-lock-face face)
+              ,(propertize (mapconcat #'identity (butlast group-sections) ".")
+                           'font-lock-face face)
+              ,(propertize status 'font-lock-face face)
+              ,(propertize (replace-regexp-in-string
+                            "\n" " "
+                            (or (cdr (assoc 'description pkg)) ""))
+                           'font-lock-face face)]))))
 
 (provide 'nix-package)
