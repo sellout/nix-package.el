@@ -1,7 +1,5 @@
 ;;; nix-env --- wrapper around the nix-env program
 
-(require 'tabulated-list)
-
 (defcustom nix-package-inferior-nix-env-program "nix-env"
   "Name of the program to use for nix-env commands."
   :type 'string
