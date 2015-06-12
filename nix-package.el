@@ -1,5 +1,6 @@
 ;;; nix-package --- package.el-like for Nix
 
+(require 'cl-lib)
 (require 'nix-env)
 (require 'tabulated-list)
 
