@@ -13,6 +13,7 @@ matrix:
     - env: emacs=emacs-snapshot
 install:
   - curl https://nixos.org/nix/install | sh
+  - . /home/travis/.nix-profile/etc/profile.d/nix.sh
   - nix-env -i $emacs
 script:
   $emacs -Q --batch --eval \
