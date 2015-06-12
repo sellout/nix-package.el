@@ -12,9 +12,11 @@ matrix:
     - env: emacs=emacs23
     - env: emacs=emacs-snapshot
 install:
+  - sudo add-apt-repository -y ppa:ubuntu-elisp
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq $emacs
   - curl https://nixos.org/nix/install | sh
   - . /home/travis/.nix-profile/etc/profile.d/nix.sh
-  - nix-env -i $emacs
 script:
   $emacs -Q --batch --eval \
     "(progn (add-to-list 'load-path \"./\")
