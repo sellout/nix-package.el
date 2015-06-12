@@ -2,9 +2,21 @@
 
 # User Guide
 
+## Execution
+
+`M-x list-nix-packages` will bring up a full list.
+
+If you do `C-u M-x …` then the list will only include packages matching `nix-package-system` (customizable).
+
 ## Key Bindings
 
 The key bindings should match those of package.el when appropriate. `C-h m` will provide a full listing.
+
+* `i` to install
+* `d` to delete
+* `U` to upgrade all updated packages
+* `~` to delete obsolete packages
+* `RET` to see the details of a package
 
 ## Fields
 
